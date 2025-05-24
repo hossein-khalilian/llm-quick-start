@@ -25,24 +25,51 @@ class JsonOrRawParser(JsonOutputParser):
 
 class ChatOllamaCustomized(ChatOllama):
     def bind_tools(self, tools):
-        rendered_tools = render_text_description(tools)
-        system_prompt = f"""\
-        You have access to functions. If you decide to invoke any of the function(s),
-        you MUST put it in the format of
-        json[
+
+        system_template = """\
+        You are a helpful assistant with access to the following powerful tools:
+
+        [{rendered_tools}]
+
+        **Crucial Instruction:**
+        If a user's request can be answered by using any of the available tools, you MUST use the tool(s) to retrieve the information.
+        Only if no tool is suitable, you may respond directly.
+
+        When using a tool, you MUST respond ONLY with the tool invocation(s) in the exact JSON format below. Do NOT include any other text, explanation, or commentary outside this JSON structure:
+
+        [
           {{{{
             "name": "tool_name",
-            "arguments": dictionary of argument name and its value
+            "arguments": {{{{
+              "arg1": "value1",
+              "arg2": "value2"
+            }}}}
           }}}},
           ...
         ]
-        You SHOULD NOT include any other text in the response if you call a function.
-        If you have access to retrieval functions use it preferably.
-        {rendered_tools}
+
+        If no tool is appropriate for the user's query, you may respond normally with a direct answer.
         """
-        prompt = ChatPromptTemplate.from_messages(
-            [("system", system_prompt), ("user", "{input}")]
+
+        rendered_tools = []
+        for tool in tools:
+            rendered_tools.append(
+                json.dumps(tool.args_schema.model_json_schema(), indent=2)
+            )
+        rendered_tools_str = ",\n".join(rendered_tools)
+        rendered_tools_str = rendered_tools_str.replace("{", "{{").replace("}", "}}")
+
+        system_prompt_template = SystemMessagePromptTemplate.from_template(
+            system_template
         )
+        system_prompt = system_prompt_template.format_messages(
+            rendered_tools=rendered_tools_str
+        )
+
+        prompt = ChatPromptTemplate.from_messages(
+            [("system", system_prompt[0].content), ("user", "{input}")]
+        )
+
         chain = prompt | self | JsonOrRawParser()
 
         return chain.bind()
