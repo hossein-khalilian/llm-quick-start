@@ -1,8 +1,8 @@
+import json
 import uuid
 
 from langchain_core.output_parsers import JsonOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.tools import render_text_description
+from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate
 from langchain_ollama import ChatOllama
 
 
@@ -40,7 +40,7 @@ class ChatOllamaCustomized(ChatOllama):
         [
           {{{{
             "name": "tool_name",
-            "arguments": {{{{
+            "args": {{{{
               "arg1": "value1",
               "arg2": "value2"
             }}}}
