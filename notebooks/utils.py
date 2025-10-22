@@ -51,19 +51,16 @@ class ChatOllamaCustomized(ChatOllama):
         If no tool is appropriate for the user's query, you may respond normally with a direct answer.
         """
 
-        rendered_tools = []
-        for tool in tools:
-            rendered_tools.append(
-                json.dumps(tool.args_schema.model_json_schema(), indent=2)
-            )
-        rendered_tools_str = ",\n".join(rendered_tools)
-        rendered_tools_str = rendered_tools_str.replace("{", "{{").replace("}", "}}")
+        rendered_tools = json.dumps(
+            [tool.args_schema.model_json_schema() for tool in tools], indent=2
+        )
+        rendered_tools = rendered_tools.replace("{", "{{").replace("}", "}}")
 
         system_prompt_template = SystemMessagePromptTemplate.from_template(
             system_template
         )
         system_prompt = system_prompt_template.format_messages(
-            rendered_tools=rendered_tools_str
+            rendered_tools=rendered_tools
         )
 
         prompt = ChatPromptTemplate.from_messages(

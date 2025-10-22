@@ -1,0 +1,2 @@
+This is a test file for MinIO upload.
+It contains some sample text.
